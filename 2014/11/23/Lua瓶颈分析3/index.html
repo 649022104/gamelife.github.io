@@ -1,0 +1,245 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>lua瓶颈分析&lt;3&gt; | 网站名称</title>
+  <meta name="author" content="longyifu">
+  
+  <meta name="description" content="网站标签">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="lua瓶颈分析&lt;3&gt;"/>
+  <meta property="og:site_name" content="网站名称"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  
+  
+    <link href="/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/">网站名称</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/archives" title="All the articles.">
+			  <i class="fa fa-archive"></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/categories" title="All the categories.">
+			  <i class="fa fa-folder"></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/tags" title="All the tags.">
+			  <i class="fa fa-tags"></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/about" title="About me.">
+			  <i class="fa fa-user"></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">		
+			<h1> lua瓶颈分析&lt;3&gt;</h1>
+		</div>		
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div class="col-md-9">
+	
+
+			
+
+	<!-- content -->
+	<div class="mypage">		
+	    <h1 id="lua瓶颈分析">lua瓶颈分析<3></3></h1>
+<hr>
+<p>需求说明</p>
+<ol>
+<li>打印出项目内所有函数的运行耗时</li>
+<li>打印出项目内所有函数的运行次数</li>
+<li>打印出项目内所有函数的平均耗时 </li>
+</ol>
+<hr>
+<h4 id="3-_我需要针对不同类型函数进行时间检测">3. 我需要针对不同类型函数进行时间检测</h4>
+<p><a id="more"></a><br>a.当前函数分为普通函数和递归函数,例如:<br>普通函数</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Interface</span><span class="params">()</span></span></div><div class="line">    <span class="comment">-- </span></div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure>
+
+<p>递归函数</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Recursive</span>(<span class="title">nCount</span>)</span></div><div class="line">	<span class="keyword">if</span> nCount &lt;= <span class="number">0</span> <span class="keyword">then</span></div><div class="line">		<span class="constant">return</span></div><div class="line">	<span class="function"><span class="keyword">end</span></span></div><div class="line">	Recursive(nCount - <span class="number">1</span>)</div><div class="line"><span class="function"><span class="keyword">end</span></span></div></pre></td></tr></table></figure>
+
+<p>一般函数没什么问题,在调用和返回时标记俩个时间点就可以捕获该函数使用的时间.但是…你妹的递归函数啊.(领导旁白:你还是太年轻了)</p>
+<blockquote>
+<p><strong>注意:</strong> 递归函数的时间检测如果每个都进行记录,就无法捕获递归函数的调用的实际时间.</p>
+</blockquote>
+<p>递归函数的时间捕获:需要在第一次调用时记录时间点,然后在最后一次返回时记录时间点.这就涉及到了堆栈.努力了2个多小时改动了3次之后有如下测试代码:</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div></pre></td><td class="code"><pre><div class="line">CallStack = {}</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">GetNameByInfo</span><span class="params">(info)</span></span></div><div class="line">	<span class="comment">-- 首先定义一个空字符串</span></div><div class="line">	<span class="keyword">local</span> name = <span class="string">""</span></div><div class="line">	<span class="comment">-- 判断调用debug.getinfo函数的类型</span></div><div class="line">	<span class="comment">-------------------------------</span></div><div class="line">	<span class="comment">-- 函数名称前缀部分(语言类型或是否由主函数调用)</span></div><div class="line">	<span class="comment">-- 如果是lua语言函数</span></div><div class="line">	<span class="keyword">if</span> info.what == <span class="string">"Lua"</span> <span class="keyword">then</span></div><div class="line">		name = <span class="string">"L:"</span></div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="comment">-- 如果是C语言函数</span></div><div class="line">	<span class="keyword">if</span> info.what == <span class="string">"C"</span> <span class="keyword">then</span></div><div class="line">		name = <span class="string">"C:"</span></div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="comment">-- 如果是main函数</span></div><div class="line">	<span class="keyword">if</span> info.what == <span class="string">"main"</span> <span class="keyword">then</span></div><div class="line">		name = <span class="string">" :"</span></div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="comment">-------------------------------</span></div><div class="line">	<span class="comment">-- 函数名称名称部分(函数地址或函数名)</span></div><div class="line">	<span class="keyword">if</span> info.name == <span class="keyword">nil</span> <span class="keyword">then</span></div><div class="line">		name = name .. <span class="string">"&lt;"</span>..<span class="built_in">tostring</span>(info.func) .. <span class="string">"&gt;"</span></div><div class="line">	<span class="keyword">else</span></div><div class="line">		name = name .. info.name</div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="comment">-------------------------------</span></div><div class="line">	<span class="comment">-- 函数名称后缀部分(函数文件或者其他)</span></div><div class="line">	<span class="keyword">if</span> info.source <span class="keyword">then</span></div><div class="line">		name = name .. <span class="string">"@"</span> .. info.source</div><div class="line">	<span class="keyword">else</span></div><div class="line">	<span class="keyword">if</span> info.what == <span class="string">"C"</span> <span class="keyword">then</span></div><div class="line">		name = name .. <span class="string">"@?"</span></div><div class="line">	<span class="keyword">else</span></div><div class="line">		name = name .. <span class="string">"@&lt;string&gt;"</span></div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="comment">-------------------------------</span></div><div class="line">	<span class="comment">-- 函数名称补充部分(无函数名时用定义时行数表示)</span></div><div class="line">	name = name .. <span class="string">":"</span></div><div class="line">	<span class="keyword">if</span> info.what == <span class="string">"C"</span> <span class="keyword">then</span></div><div class="line">		name = name .. <span class="string">"?"</span></div><div class="line">	<span class="keyword">else</span></div><div class="line">		name = name .. info.linedefined</div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="keyword">return</span> name</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="comment">-- Hook函数</span></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">HookEvent</span><span class="params">(event)</span></span></div><div class="line">	<span class="keyword">local</span> info = <span class="built_in">debug</span>.getinfo(<span class="number">2</span>)</div><div class="line"></div><div class="line">	<span class="keyword">if</span> info == <span class="keyword">nil</span> <span class="keyword">then</span></div><div class="line">		<span class="keyword">return</span></div><div class="line">	<span class="keyword">end</span></div><div class="line"></div><div class="line">	<span class="keyword">if</span> event == <span class="string">"call"</span> <span class="keyword">then</span></div><div class="line">		<span class="built_in">table</span>.insert(CallStack, info )</div><div class="line">		<span class="built_in">print</span>(<span class="string">"压入堆栈"</span>)</div><div class="line">		<span class="built_in">table</span>.foreach(CallStack, <span class="function"><span class="keyword">function</span><span class="params">(index, value)</span></span> <span class="built_in">print</span> (index, GetNameByInfo(value)) <span class="keyword">end</span>)</div><div class="line">		<span class="built_in">print</span>(<span class="string">"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"</span>)</div><div class="line">	<span class="keyword">else</span></div><div class="line">		<span class="built_in">table</span>.remove(CallStack, <span class="built_in">table</span>.getn(CallStack) )</div><div class="line">		<span class="built_in">print</span>(<span class="string">"弹出堆栈"</span>)</div><div class="line">		<span class="built_in">table</span>.foreach(CallStack, <span class="function"><span class="keyword">function</span><span class="params">(index, value)</span></span> <span class="built_in">print</span> (index, GetNameByInfo(value)) <span class="keyword">end</span>)</div><div class="line">		<span class="built_in">print</span>(<span class="string">"-------------------------------------------------------------------------------"</span>)</div><div class="line">	<span class="keyword">end</span></div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="comment">-- 注册Hook</span></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">StartHook</span><span class="params">()</span></span></div><div class="line">	<span class="built_in">debug</span>.sethook(HookEvent, <span class="string">"cr"</span>)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="comment">-- 撤销Hook</span></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">StopHook</span><span class="params">()</span></span></div><div class="line">	<span class="built_in">debug</span>.sethook(<span class="keyword">nil</span>)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="comment">-- 普通函数</span></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Interface</span><span class="params">()</span></span></div><div class="line"></div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="comment">-- 递归函数</span></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Recursive</span><span class="params">(nCount)</span></span></div><div class="line">	<span class="keyword">if</span> nCount &lt;= <span class="number">0</span> <span class="keyword">then</span></div><div class="line">		<span class="keyword">return</span></div><div class="line">	<span class="keyword">end</span></div><div class="line">	Recursive(nCount - <span class="number">1</span>)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line">StartHook()</div><div class="line"></div><div class="line">Recursive(<span class="number">8</span>)</div><div class="line"></div><div class="line">StopHook()</div></pre></td></tr></table></figure>
+
+<p>b.最终的数据统计逻辑部分<br>(未完待续)</p>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+<ul class="pagination">
+	 
+				
+    	<li class="prev"><a href="/2014/12/24/hello-world/" class="alignleft prev"><i class="fa fa-arrow-circle-o-left"></i>上一页</a></li>
+  		
+
+        <li><a href="/archives"><i class="fa fa-archive"></i>Archive</a></li>
+
+		
+		   <li class="next"><a href="/2014/11/22/Lua瓶颈分析2/" class="alignright next">下一页<i class="fa fa-arrow-circle-o-right"></i></a></li>         
+        
+	
+</ul>
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+  <h2 class="title">留言</h2>
+
+  
+</section>
+
+	
+	</div> <!-- col-md-9/col-md-12 -->
+	
+	
+		<div class="col-md-3"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	11月 23 2014 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/categories/Docs/">Docs<span>3</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/tags/Lua-Profiler/">Lua Profiler<span>3</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	
+
+</div><!-- row -->
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2014 longyifu
+  
+      with help from <a href="http://zespia.tw/hexo/" target="_blank">Hexo</a> and <a href="http://getbootstrap.com/" target="_blank">Twitter Bootstrap</a>. Theme by <a href="http://github.com/wzpan/hexo-theme-freemind/">Freemind</a>.    
+</p> </footer>
+</div> <!-- container-narrow -->
+  
+<a id="gotop" href="#">   
+  <span>▲</span> 
+</a>
+
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+</body>
+   </html>

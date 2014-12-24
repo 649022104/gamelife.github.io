@@ -1,0 +1,313 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>lua瓶颈分析&lt;2&gt; | 网站名称</title>
+  <meta name="author" content="longyifu">
+  
+  <meta name="description" content="网站标签">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="lua瓶颈分析&lt;2&gt;"/>
+  <meta property="og:site_name" content="网站名称"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  
+  
+    <link href="/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/">网站名称</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/archives" title="All the articles.">
+			  <i class="fa fa-archive"></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/categories" title="All the categories.">
+			  <i class="fa fa-folder"></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/tags" title="All the tags.">
+			  <i class="fa fa-tags"></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/about" title="About me.">
+			  <i class="fa fa-user"></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">		
+			<h1> lua瓶颈分析&lt;2&gt;</h1>
+		</div>		
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div class="col-md-9">
+	
+
+			
+
+	<!-- content -->
+	<div class="mypage">		
+	    <h1 id="lua瓶颈分析">lua瓶颈分析<2></2></h1>
+<hr>
+<p>需求说明</p>
+<ol>
+<li>打印出项目内所有函数的运行耗时</li>
+<li>打印出项目内所有函数的运行次数</li>
+<li>打印出项目内所有函数的平均耗时 </li>
+</ol>
+<hr>
+<h4 id="2-_我需要知道是哪个函数调用或返回了">2. 我需要知道是哪个函数调用或返回了</h4>
+<p><a id="more"></a><br>a.函数名称怎么找<br>debug库里有一个方法debug.getinfo()</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">local</span> info = <span class="built_in">debug</span>.getinfo(n)</div></pre></td></tr></table></figure>
+
+<p>那么现在问题来了.我想知道debug.getinfo函数返回了函数名没有,另外哪个参数n又是怎么回事.</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Interface</span><span class="params">()</span></span></div><div class="line">	<span class="keyword">local</span> info = <span class="built_in">debug</span>.getinfo(<span class="number">0</span>)</div><div class="line">	<span class="built_in">table</span>.foreach(info, <span class="function"><span class="keyword">function</span><span class="params">(index, value)</span></span> <span class="built_in">print</span> (index, value) <span class="keyword">end</span>)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line">Interface()</div></pre></td></tr></table></figure>
+
+<p>通过打印出来的数据可知debug.getinfo函数返回了一个表.该表包含了一些数据.</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>source</td>
+<td style="text-align:left">文件名</td>
+</tr>
+<tr>
+<td>short_src</td>
+<td style="text-align:left">文件名字符串</td>
+</tr>
+<tr>
+<td>linedefined</td>
+<td style="text-align:left">函数定义开始行</td>
+</tr>
+<tr>
+<td>lastlinedefined</td>
+<td style="text-align:left">函数定义结束行</td>
+</tr>
+<tr>
+<td>currentline</td>
+<td style="text-align:left">当前执行行数</td>
+</tr>
+<tr>
+<td>what</td>
+<td style="text-align:left">函数语言类型</td>
+</tr>
+<tr>
+<td>name</td>
+<td style="text-align:left">函数名称</td>
+</tr>
+<tr>
+<td>namewhat</td>
+<td style="text-align:left">函数名称类型</td>
+</tr>
+<tr>
+<td>nups</td>
+<td style="text-align:left">函数参数个数</td>
+</tr>
+</tbody>
+</table>
+<p>当我为debug.getinfo传入不同的参数,返回后的表信息也不相同.查看lua帮助文档后得知传入相应不同参数对应获取表信息分别为:<br>获取getinfo函数本身的函数信息表</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">debug</span>.getinfo(<span class="number">0</span>)</div></pre></td></tr></table></figure>
+
+<p>获取调用debug.getinfo函数上一层函数的函数信息表</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">debug</span>.getinfo(<span class="number">1</span>)</div></pre></td></tr></table></figure>
+
+<p>获取调用debug.getinfo函数上二层函数的函数信息表</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">debug</span>.getinfo(<span class="number">2</span>)</div></pre></td></tr></table></figure>
+
+<p>获取调用debug.getinfo函数上三层函数的函数信息表</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">debug</span>.getinfo(<span class="number">3</span>)</div></pre></td></tr></table></figure>
+
+<p>以此类推</p>
+<p>获取调用debug.getinfo函数上N层函数的函数信息表</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">debug</span>.getinfo(n)</div></pre></td></tr></table></figure>
+
+<p>为了求证是不是这个样子的,为此写了如下测试代码.</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">GetDepthInfo</span><span class="params">()</span></span></div><div class="line">	<span class="keyword">local</span> depth = <span class="number">0</span></div><div class="line">	<span class="keyword">local</span> info = <span class="built_in">debug</span>.getinfo(depth)</div><div class="line">	<span class="keyword">while</span> info <span class="keyword">do</span></div><div class="line">		depth = depth + <span class="number">1</span></div><div class="line">		<span class="keyword">if</span> info.name <span class="keyword">then</span></div><div class="line">			<span class="built_in">print</span>(info.name .. <span class="string">"\t函数被调用到了!"</span>)</div><div class="line">		<span class="keyword">end</span></div><div class="line">		info = <span class="built_in">debug</span>.getinfo(depth)</div><div class="line">	<span class="keyword">end</span></div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Interface1</span><span class="params">()</span></span></div><div class="line">	GetDepthInfo()</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Interface2</span><span class="params">()</span></span></div><div class="line">	GetDepthInfo()</div><div class="line">	Interface1()</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Interface3</span><span class="params">()</span></span></div><div class="line">	GetDepthInfo()</div><div class="line">	Interface2()</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">Interface4</span><span class="params">()</span></span></div><div class="line">	GetDepthInfo()</div><div class="line">	Interface3()</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line">Interface4()</div></pre></td></tr></table></figure>
+
+<p>b函数名称有时会没有<br>在上述代码打印函数名称时,我需要添加判断函数名称是否存在来确保程序的正确运行.这是为什么呢?</p>
+<blockquote>
+<p><strong>注意:</strong> debug.getinfo函数获取的函数名称有着不确定性.</p>
+</blockquote>
+<p>遇到该问题头大.最终在收索时发现有如下现成的解决方案:</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">GetNameByInfo</span><span class="params">(info)</span></span></div><div class="line">	<span class="comment">-- 首先定义一个空字符串</span></div><div class="line">	<span class="keyword">local</span> name = <span class="string">""</span></div><div class="line">	<span class="comment">-- 判断调用debug.getinfo函数的类型</span></div><div class="line">	<span class="comment">-------------------------------</span></div><div class="line">	<span class="comment">-- 函数名称前缀部分(语言类型或是否由主函数调用)</span></div><div class="line">	<span class="comment">-- 如果是lua语言函数</span></div><div class="line">	<span class="keyword">if</span> info.what == <span class="string">"Lua"</span> <span class="keyword">then</span></div><div class="line">		name = <span class="string">"L:"</span></div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="comment">-- 如果是C语言函数</span></div><div class="line">	<span class="keyword">if</span> info.what == <span class="string">"C"</span> <span class="keyword">then</span></div><div class="line">		name = <span class="string">"C:"</span></div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="comment">-- 如果是main函数</span></div><div class="line">	<span class="keyword">if</span> info.what == <span class="string">"main"</span> <span class="keyword">then</span></div><div class="line">		name = <span class="string">" :"</span></div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="comment">-------------------------------</span></div><div class="line">	<span class="comment">-- 函数名称名称部分(函数地址或函数名)</span></div><div class="line">	<span class="keyword">if</span> info.name == <span class="keyword">nil</span> <span class="keyword">then</span></div><div class="line">		name = name .. <span class="string">"&lt;"</span>..<span class="built_in">tostring</span>(info.func) .. <span class="string">"&gt;"</span></div><div class="line">	<span class="keyword">else</span></div><div class="line">		name = name .. info.name</div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="comment">-------------------------------</span></div><div class="line">	<span class="comment">-- 函数名称后缀部分(函数文件或者其他)</span></div><div class="line">	<span class="keyword">if</span> info.source <span class="keyword">then</span></div><div class="line">		name = name .. <span class="string">"@"</span> .. info.source</div><div class="line">	<span class="keyword">else</span></div><div class="line">		<span class="keyword">if</span> info.what == <span class="string">"C"</span> <span class="keyword">then</span></div><div class="line">			name = name .. <span class="string">"@?"</span></div><div class="line">		<span class="keyword">else</span></div><div class="line">			name = name .. <span class="string">"@&lt;string&gt;"</span></div><div class="line">		<span class="keyword">end</span></div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="comment">-------------------------------</span></div><div class="line">	<span class="comment">-- 函数名称补充部分(无函数名时用定义时行数表示)</span></div><div class="line">	name = name .. <span class="string">":"</span></div><div class="line">	<span class="keyword">if</span> info.what == <span class="string">"C"</span> <span class="keyword">then</span></div><div class="line">		name = name .. <span class="string">"?"</span></div><div class="line">	<span class="keyword">else</span></div><div class="line">		name = name .. info.linedefined</div><div class="line">	<span class="keyword">end</span></div><div class="line">	<span class="keyword">return</span> name</div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure>
+
+<p>该方法是从<a href="http://lua-users.org/wiki/PepperfishProfiler" target="_blank" rel="external">这里</a>扣过来的,有兴趣的可以去看看.</p>
+<p>到此我知道了是哪个函数调用或者返回触发Hook函数,就可以开始做各个数据的获取和保存啦.</p>
+<hr>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+<ul class="pagination">
+	 
+				
+    	<li class="prev"><a href="/2014/11/23/Lua瓶颈分析3/" class="alignleft prev"><i class="fa fa-arrow-circle-o-left"></i>上一页</a></li>
+  		
+
+        <li><a href="/archives"><i class="fa fa-archive"></i>Archive</a></li>
+
+		
+		   <li class="next"><a href="/2014/11/21/Lua瓶颈分析1/" class="alignright next">下一页<i class="fa fa-arrow-circle-o-right"></i></a></li>         
+        
+	
+</ul>
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+  <h2 class="title">留言</h2>
+
+  
+</section>
+
+	
+	</div> <!-- col-md-9/col-md-12 -->
+	
+	
+		<div class="col-md-3"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	11月 22 2014 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/categories/Docs/">Docs<span>3</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/tags/Lua-Profiler/">Lua Profiler<span>3</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	
+
+</div><!-- row -->
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2014 longyifu
+  
+      with help from <a href="http://zespia.tw/hexo/" target="_blank">Hexo</a> and <a href="http://getbootstrap.com/" target="_blank">Twitter Bootstrap</a>. Theme by <a href="http://github.com/wzpan/hexo-theme-freemind/">Freemind</a>.    
+</p> </footer>
+</div> <!-- container-narrow -->
+  
+<a id="gotop" href="#">   
+  <span>▲</span> 
+</a>
+
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+</body>
+   </html>

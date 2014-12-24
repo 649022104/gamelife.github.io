@@ -1,0 +1,281 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>lua瓶颈分析&lt;1&gt; | 网站名称</title>
+  <meta name="author" content="longyifu">
+  
+  <meta name="description" content="网站标签">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="lua瓶颈分析&lt;1&gt;"/>
+  <meta property="og:site_name" content="网站名称"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  
+  
+    <link href="/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/google-fonts.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+
+</head>
+
+ <body>  
+  <nav id="main-nav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+      <button type="button" class="navbar-header navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+		<span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+	  <a class="navbar-brand" href="/">网站名称</a>
+      <div class="collapse navbar-collapse nav-menu">
+		<ul class="nav navbar-nav">
+		  
+		  <li>
+			<a href="/archives" title="All the articles.">
+			  <i class="fa fa-archive"></i>Archives
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/categories" title="All the categories.">
+			  <i class="fa fa-folder"></i>Categories
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/tags" title="All the tags.">
+			  <i class="fa fa-tags"></i>Tags
+			</a>
+		  </li>
+		  
+		  <li>
+			<a href="/about" title="About me.">
+			  <i class="fa fa-user"></i>About
+			</a>
+		  </li>
+		  
+		</ul>
+      </div>
+    </div> <!-- container -->
+</nav>
+<div class="clearfix"></div>
+
+  <div class="container">
+  	<div class="content">
+    	 
+
+
+	
+		<div class="page-header">		
+			<h1> lua瓶颈分析&lt;1&gt;</h1>
+		</div>		
+	
+
+
+
+<div class="row post">
+	<!-- cols -->
+	
+	<div class="col-md-9">
+	
+
+			
+
+	<!-- content -->
+	<div class="mypage">		
+	    <h1 id="lua瓶颈分析">lua瓶颈分析<1></1></h1>
+<hr>
+<p>需求说明</p>
+<ol>
+<li>打印出项目内所有函数的运行耗时</li>
+<li>打印出项目内所有函数的运行次数</li>
+<li>打印出项目内所有函数的平均耗时 </li>
+</ol>
+<hr>
+<h4 id="1-_我需要知道函数被调用和返回时的触发点">1. 我需要知道函数被调用和返回时的触发点</h4>
+<p><a id="more"></a><br>a.难道我要?<br>在成千上万个函数调用添加触发器?<br>在成千上万个函数返回添加触发器?</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">function</span> FunctionCall()</div><div class="line">	-- Func Call</div><div class="line">end</div><div class="line"></div><div class="line"><span class="keyword">function</span> FunctionReturn()</div><div class="line">	-- Func Return</div><div class="line">end</div><div class="line"></div><div class="line"><span class="keyword">function</span> Interface1()</div><div class="line">	FunctionCall()</div><div class="line">	{ <span class="keyword">...</span> }</div><div class="line">	FunctionReturn()</div><div class="line">	<span class="keyword">return</span></div><div class="line">end</div><div class="line"></div><div class="line"><span class="keyword">function</span> Interface2()</div><div class="line">	FunctionCall()</div><div class="line">	{ <span class="keyword">...</span> }</div><div class="line">	FunctionReturn()</div><div class="line">	<span class="keyword">return</span></div><div class="line">end</div><div class="line"></div><div class="line"><span class="keyword">...</span> <span class="keyword">...</span> <span class="keyword">...</span> <span class="keyword">...</span></div><div class="line"></div><div class="line"><span class="keyword">function</span> InterfaceN()</div><div class="line">	FunctionCall()</div><div class="line">	{ <span class="keyword">...</span> }</div><div class="line">	FunctionReturn()</div><div class="line">	<span class="keyword">return</span></div><div class="line">end</div></pre></td></tr></table></figure>
+
+
+<p>这可真是体力活!(领导旁白:你过来,我保证不打死你!)</p>
+<p>b.其他方法<br>debug库里有一个方法 debug.sethook()<br>Hook事件</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">HookEvent</span><span class="params">(event)</span></span></div><div class="line">	<span class="comment">-- Func Hook Event</span></div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure>
+
+
+<p>调用方式A<br>说明:每当函数调用时,调用HookEvent函数</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">debug</span>.sethook(HookEvent, <span class="string">"c"</span>)</div></pre></td></tr></table></figure>
+
+
+<p>调用方式B<br>说明:每当函数返回时,调用HookEvent函数</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">debug</span>.sethook(HookEvent, <span class="string">"r"</span>)</div></pre></td></tr></table></figure>
+
+
+<p>调用方式C<br>说明:每当函数执行完一行时,调用HookEvent函数</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">debug</span>.sethook(HookEvent, <span class="string">"l"</span>)</div></pre></td></tr></table></figure>
+
+
+<blockquote>
+<p><strong>注意:</strong> 因为Hook函数只能注册一个!所以我不能为函数的调用和返回分别注册一个Hook,那怎么办呢?</p>
+</blockquote>
+<p>调用方式D<br>说明:每当函数调用/返回时,调用HookEvent函数</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">debug</span>.sethook(HookEvent, <span class="string">"cr"</span>)</div></pre></td></tr></table></figure>
+
+
+<p>调用方式E<br>说明:每当函数调用/返回/换行时,调用HookEvent函数</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">debug</span>.sethook(HookEvent, <span class="string">"crl"</span>)</div></pre></td></tr></table></figure>
+
+
+<blockquote>
+<p><strong>注意:</strong> HookEvent函数有个参数,可以依据这个参数来判定调用类型.</p>
+</blockquote>
+<p>区分调用类型</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">function</span> HookEvent(<span class="keyword">event</span>)</div><div class="line">    <span class="keyword">if</span> <span class="keyword">event</span> == <span class="string">"call"</span> <span class="keyword">then</span></div><div class="line">		-- Func <span class="keyword">Call</span> <span class="keyword">Event</span></div><div class="line">	<span class="keyword">elseif</span> <span class="keyword">event</span> == <span class="string">"return"</span> <span class="keyword">then</span></div><div class="line">		-- Func <span class="keyword">Call</span> <span class="keyword">Event</span></div><div class="line">	<span class="keyword">elseif</span> <span class="keyword">event</span> == <span class="string">"line"</span> <span class="keyword">then</span></div><div class="line">		-- Func <span class="keyword">Call</span> <span class="keyword">Event</span></div><div class="line">	<span class="keyword">else</span></div><div class="line">		-- Func Other <span class="keyword">Event</span></div><div class="line">	<span class="keyword">end</span></div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure>
+
+
+<p>撤销Hook</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">debug</span>.sethook(<span class="keyword">nil</span>)</div></pre></td></tr></table></figure>
+
+
+
+<p>那么我的使用方法可以变化成这样?</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div></pre></td><td class="code"><pre><div class="line">-- Hook函数</div><div class="line"><span class="keyword">function</span> HookEvent(event)</div><div class="line">	-- Func Hook Event</div><div class="line">	<span class="keyword">if</span> event == <span class="string">"call"</span> then</div><div class="line">		-- Func Call Event</div><div class="line">	elseif event == <span class="string">"return"</span> then</div><div class="line">		-- Func Call Event</div><div class="line">	<span class="keyword">else</span></div><div class="line">		-- Func Other Event</div><div class="line">	end</div><div class="line">end</div><div class="line"></div><div class="line">-- 注册Hook</div><div class="line"><span class="keyword">function</span> StartHook()</div><div class="line">	debug.sethook(HookEvent, <span class="string">"cr"</span>)</div><div class="line">end</div><div class="line"></div><div class="line">-- 撤销Hook</div><div class="line"><span class="keyword">function</span> StopHook()</div><div class="line">	debug.sethook(nil)</div><div class="line">end</div><div class="line"></div><div class="line"><span class="keyword">function</span> Interface1()</div><div class="line">	{ <span class="keyword">...</span> }</div><div class="line">	<span class="keyword">return</span></div><div class="line">end</div><div class="line"><span class="keyword">function</span> Interface2()</div><div class="line">	{ <span class="keyword">...</span> }</div><div class="line">	<span class="keyword">return</span></div><div class="line">end</div><div class="line"></div><div class="line">-- <span class="keyword">...</span> <span class="keyword">...</span> <span class="keyword">...</span> <span class="keyword">...</span></div><div class="line"></div><div class="line"><span class="keyword">function</span> InterfaceN()</div><div class="line">	{ <span class="keyword">...</span> }</div><div class="line">	<span class="keyword">return</span></div><div class="line">end</div><div class="line"></div><div class="line">StartHook()</div><div class="line"></div><div class="line">Interface1()</div><div class="line">Interface2()</div><div class="line">-- <span class="keyword">...</span> <span class="keyword">...</span> <span class="keyword">...</span></div><div class="line">InterfaceN()</div><div class="line"></div><div class="line">StopHook()</div></pre></td></tr></table></figure>
+
+
+<p>这样好多了!(我暗暗嘀咕道:这回领导不会打死我了吧?)</p>
+<hr>
+	  
+	</div>
+
+	<div>
+  	<center>
+	<div class="pagination">
+<ul class="pagination">
+	 
+				
+    	<li class="prev"><a href="/2014/11/22/Lua瓶颈分析2/" class="alignleft prev"><i class="fa fa-arrow-circle-o-left"></i>上一页</a></li>
+  		
+
+        <li><a href="/archives"><i class="fa fa-archive"></i>Archive</a></li>
+
+		
+          <li class="next disabled"><a>下一页<i class="fa fa-arrow-circle-o-right"></i></a></li>
+        
+	
+</ul>
+</div>
+
+    </center>
+	</div>
+	
+	<!-- comment -->
+	
+<section id="comment">
+  <h2 class="title">留言</h2>
+
+  
+</section>
+
+	
+	</div> <!-- col-md-9/col-md-12 -->
+	
+	
+		<div class="col-md-3"> 
+
+	<!-- date -->
+	
+	<div class="meta-widget">
+	<i class="fa fa-clock-o"></i>
+	11月 21 2014 
+	</div>
+	
+
+	<!-- categories -->
+    
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#categorys"><i class="fa fa-folder"></i></a>	
+    <ul id="categorys" class="tag_box list-unstyled collapse in">
+          
+  <li>
+    <li><a href="/categories/Docs/">Docs<span>3</span></a></li>
+  </li>
+
+    </ul>
+	</div>
+	
+
+	<!-- tags -->
+	
+	<div class="meta-widget">
+	<a data-toggle="collapse" data-target="#tags"><i class="fa fa-tags"></i></a>		  
+    <ul id="tags" class="tag_box list-unstyled collapse in">	  
+	    
+  <li><a href="/tags/Lua-Profiler/">Lua Profiler<span>3</span></a></li>
+    </ul>
+	</div>
+		
+
+	<!-- toc -->
+	<div class="meta-widget">
+	
+	</div>
+	
+    <hr>
+	
+</div><!-- col-md-3 -->
+
+	
+
+</div><!-- row -->
+
+	</div>
+  </div>
+  <div class="container-narrow">
+  <footer> <p>
+  &copy; 2014 longyifu
+  
+      with help from <a href="http://zespia.tw/hexo/" target="_blank">Hexo</a> and <a href="http://getbootstrap.com/" target="_blank">Twitter Bootstrap</a>. Theme by <a href="http://github.com/wzpan/hexo-theme-freemind/">Freemind</a>.    
+</p> </footer>
+</div> <!-- container-narrow -->
+  
+<a id="gotop" href="#">   
+  <span>▲</span> 
+</a>
+
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+</body>
+   </html>
